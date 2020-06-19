@@ -346,12 +346,14 @@ static MPMediaItemArtwork* artwork = nil;
 
 - (MPRemoteCommandHandlerStatus) play: (MPRemoteCommandEvent *) event {
   NSLog(@"play");
+  [channel invokeMethod:@"onPlay" arguments:nil];
   [backgroundChannel invokeMethod:@"onPlay" arguments:nil];
   return MPRemoteCommandHandlerStatusSuccess;
 }
 
 - (MPRemoteCommandHandlerStatus) pause: (MPRemoteCommandEvent *) event {
   NSLog(@"pause");
+  [channel invokeMethod:@"onPause" arguments:nil];
   [backgroundChannel invokeMethod:@"onPause" arguments:nil];
   return MPRemoteCommandHandlerStatusSuccess;
 }
@@ -380,6 +382,7 @@ static MPMediaItemArtwork* artwork = nil;
     case AVAudioSessionInterruptionTypeBegan:
     {
       enum AudioInterruption interruption = AIUnknownPause;
+      [channel invokeMethod:@"onAudioFocusLost" arguments:@[@(interruption)]];
       [backgroundChannel invokeMethod:@"onAudioFocusLost" arguments:@[@(interruption)]];
       break;
     }
@@ -387,9 +390,11 @@ static MPMediaItemArtwork* artwork = nil;
     {
       if ([(NSNumber*)[notification.userInfo valueForKey:AVAudioSessionInterruptionOptionKey] intValue] == AVAudioSessionInterruptionOptionShouldResume) {
         enum AudioInterruption interruption = AITemporaryPause;
+        [channel invokeMethod:@"onAudioFocusGained" arguments:@[@(interruption)]];
         [backgroundChannel invokeMethod:@"onAudioFocusGained" arguments:@[@(interruption)]];
       } else {
         enum AudioInterruption interruption = AIPause;
+        [channel invokeMethod:@"onAudioFocusGained" arguments:@[@(interruption)]];
         [backgroundChannel invokeMethod:@"onAudioFocusGained" arguments:@[@(interruption)]];
       }
       break;
@@ -401,42 +406,49 @@ static MPMediaItemArtwork* artwork = nil;
 
 - (MPRemoteCommandHandlerStatus) togglePlayPause: (MPRemoteCommandEvent *) event {
   NSLog(@"togglePlayPause");
+  [channel invokeMethod:@"onClick" arguments:@[@(0)]];
   [backgroundChannel invokeMethod:@"onClick" arguments:@[@(0)]];
   return MPRemoteCommandHandlerStatusSuccess;
 }
 
 - (MPRemoteCommandHandlerStatus) stop: (MPRemoteCommandEvent *) event {
   NSLog(@"stop");
+  [channel invokeMethod:@"onStop" arguments:nil];
   [backgroundChannel invokeMethod:@"onStop" arguments:nil];
   return MPRemoteCommandHandlerStatusSuccess;
 }
 
 - (MPRemoteCommandHandlerStatus) nextTrack: (MPRemoteCommandEvent *) event {
   NSLog(@"nextTrack");
+  [channel invokeMethod:@"onSkipToNext" arguments:nil];
   [backgroundChannel invokeMethod:@"onSkipToNext" arguments:nil];
   return MPRemoteCommandHandlerStatusSuccess;
 }
 
 - (MPRemoteCommandHandlerStatus) previousTrack: (MPRemoteCommandEvent *) event {
   NSLog(@"previousTrack");
+  [channel invokeMethod:@"onSkipToPrevious" arguments:nil];
   [backgroundChannel invokeMethod:@"onSkipToPrevious" arguments:nil];
   return MPRemoteCommandHandlerStatusSuccess;
 }
 
 - (MPRemoteCommandHandlerStatus) changePlaybackPosition: (MPChangePlaybackPositionCommandEvent *) event {
   NSLog(@"changePlaybackPosition");
+  [channel invokeMethod:@"onSeekTo" arguments: @[@((long long) (event.positionTime * 1000))]];
   [backgroundChannel invokeMethod:@"onSeekTo" arguments: @[@((long long) (event.positionTime * 1000))]];
   return MPRemoteCommandHandlerStatusSuccess;
 }
 
 - (MPRemoteCommandHandlerStatus) skipForward: (MPRemoteCommandEvent *) event {
   NSLog(@"skipForward");
+  [channel invokeMethod:@"onFastForward" arguments:nil];
   [backgroundChannel invokeMethod:@"onFastForward" arguments:nil];
   return MPRemoteCommandHandlerStatusSuccess;
 }
 
 - (MPRemoteCommandHandlerStatus) skipBackward: (MPRemoteCommandEvent *) event {
   NSLog(@"skipBackward");
+  [channel invokeMethod:@"onRewind" arguments:nil];
   [backgroundChannel invokeMethod:@"onRewind" arguments:nil];
   return MPRemoteCommandHandlerStatusSuccess;
 }
