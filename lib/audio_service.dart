@@ -489,9 +489,15 @@ class AudioService {
   /// True after service stopped and !running.
   static bool _afterStop = false;
 
+  static ClientAudioTask _clientTask;
+
   /// Receives custom events from the background audio task.
   static ReceivePort _customEventReceivePort;
   static StreamSubscription _customEventSubscription;
+
+  static void enableServiceClient(ClientAudioTask client) {
+    _clientTask = client;
+  }
 
   /// Connects to the service from your UI so that audio playback can be
   /// controlled.
@@ -556,6 +562,48 @@ class AudioService {
           break;
         case 'notificationClicked':
           _notificationSubject.add(call.arguments[0]);
+          break;
+
+
+
+
+
+        case 'onAudioFocusGained':
+          final List args = call.arguments;
+          _clientTask.onAudioFocusGained(AudioInterruption.values[args[0]]);
+          break;
+        case 'onAudioFocusLost':
+          final List args = call.arguments;
+          _clientTask.onAudioFocusLost(AudioInterruption.values[args[0]]);
+          break;
+        case 'onAudioBecomingNoisy':
+          _clientTask.onAudioBecomingNoisy();
+          break;
+        case 'onClick':
+          final List args = call.arguments;
+          MediaButton button = MediaButton.values[args[0]];
+          _clientTask.onClick(button);
+          break;
+        case 'onStop':
+          await _clientTask.onStop();
+          break;
+        case 'onPause':
+          _clientTask.onPause();
+          break;
+        case 'onPlay':
+          _clientTask.onPlay();
+          break;
+        case 'onSkipToNext':
+          _clientTask.onSkipToNext();
+          break;
+        case 'onSkipToPrevious':
+          _clientTask.onSkipToPrevious();
+          break;
+        case 'onFastForward':
+          _clientTask.onFastForward();
+          break;
+        case 'onRewind':
+          _clientTask.onRewind();
           break;
       }
     });
@@ -1427,6 +1475,70 @@ abstract class BackgroundAudioTask {
   void onClose() {
     onStop();
   }
+}
+
+abstract class ClientAudioTask {
+
+
+  Future<void> onStop() async {}
+
+  /// Called when your app loses audio focus. This can happen when receiving a
+  /// phone call, or when another app on the device needs to play audio. The
+  /// parameter indicates how to handle the audio interruption:
+  ///
+  /// * [AudioInterruption.pause] indicates that audio should be paused and
+  /// should not automatically resume once focus is regained (Android only)
+  /// * [AudioInterruption.temporaryPause] indicates that audio should be
+  /// temporarily paused and resumed again once focus is regained (Android
+  /// only)
+  /// * [AudioInterruption.temporaryDuck] indicates that audio can be
+  /// temporarily paused or ducked (volume lowered) and resumed or restored
+  /// again once focus is regained (Android only)
+  /// * [AudioInterruption.unknownPause] indicates that audio should be paused
+  /// (iOS only)
+  void onAudioFocusLost(AudioInterruption interruption) {}
+
+  /// Called when your app gains audio focus. If the audio was interrupted, the
+  /// parameter indicates if and how audio should be restored:
+  ///
+  /// * [AudioInterruption.pause]: Audio should stay paused.
+  /// * [AudioInterruption.temporaryPause]: Audio should resume.
+  /// * [AudioInterruption.temporaryDuck]: Audio should be restored after
+  /// ducking (Android only).
+  void onAudioFocusGained(AudioInterruption interruption) {}
+
+  /// Called on Android when your audio output is about to become noisy due
+  /// to the user unplugging the headphones.
+  void onAudioBecomingNoisy() {}
+
+  void onClick(MediaButton button) {}
+
+  void onPlay() {}
+
+  /// Called when a client has requested to skip to the next item in the queue,
+  /// such as via a request to [AudioService.skipToNext].
+  void onSkipToNext() {}
+
+  /// Called when a client has requested to skip to the previous item in the
+  /// queue, such as via a request to [AudioService.skipToPrevious].
+  void onSkipToPrevious() {}
+
+  /// Called when the client has requested to fast forward, such as via a
+  /// request to [AudioService.fastForward]. An implementation of this callback
+  /// can use the [fastForwardInterval] property to determine how much audio
+  /// to skip.
+  void onFastForward() {}
+
+  /// Called when the client has requested to rewind, such as via a request to
+  /// [AudioService.rewind]. An implementation of this callback can use the
+  /// [rewindInterval] property to determine how much audio to skip.
+  void onRewind() {}
+
+  /// Called when the client has requested to seek to a position, such as via a
+  /// call to [AudioService.seekTo]. If your implementation of seeking causes
+  /// buffering to occur, consider broadcasting a buffering state via
+  /// [AudioServiceBackground.setState] while the seek is in progress.
+  void onSeekTo(Duration position) {}
 }
 
 _iosIsolateEntrypoint(int rawHandle) async {
