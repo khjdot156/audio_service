@@ -278,6 +278,12 @@ static MPMediaItemArtwork* artwork = nil;
   } else if ([@"setSpeed" isEqualToString:call.method]) {
     [backgroundChannel invokeMethod:@"onSetSpeed" arguments:@[call.arguments]];
     result(@YES);
+  } else if ([@"clientSetState" isEqualToString:call.method]) {
+    [backgroundChannel invokeMethod:@"onSetState" arguments:@[call.arguments]];
+    result(@YES);
+  } else if ([@"clientSetMediaItem" isEqualToString:call.method]) {
+    [backgroundChannel invokeMethod:@"onSetMediaItem" arguments:@[call.arguments]];
+    result(@YES);
   } else if ([@"setState" isEqualToString:call.method]) {
     long long msSinceEpoch;
     if (call.arguments[7] != [NSNull null]) {
