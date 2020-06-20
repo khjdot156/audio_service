@@ -594,6 +594,10 @@ class AudioService {
         case 'onPlay':
           _clientTask.onPlay();
           break;
+          
+        case 'onSeekTo':
+          _clientTask.onSeekTo(const Duration(milliseconds: call.arguments[0]));
+          break;
         case 'onSkipToNext':
           _clientTask.onSkipToNext();
           break;
