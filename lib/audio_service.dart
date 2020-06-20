@@ -106,9 +106,11 @@ class PlaybackState {
     if (playing && processingState == AudioProcessingState.ready) {
       return Duration(
           milliseconds: (position.inMilliseconds +
-                  ((DateTime.now().millisecondsSinceEpoch -
-                          updateTime.inMilliseconds) *
-                      (speed ?? 1.0)))
+              ((DateTime
+                  .now()
+                  .millisecondsSinceEpoch -
+                  updateTime.inMilliseconds) *
+                  (speed ?? 1.0)))
               .toInt());
     } else {
       return position;
@@ -300,7 +302,8 @@ class MediaItem {
 
   /// Creates a [MediaItem] from a map of key/value pairs corresponding to
   /// fields of this class.
-  factory MediaItem.fromJson(Map raw) => MediaItem(
+  factory MediaItem.fromJson(Map raw) =>
+      MediaItem(
         id: raw['id'],
         album: raw['album'],
         title: raw['title'],
@@ -361,7 +364,8 @@ class MediaItem {
 
   /// Converts this [MediaItem] to a map of key/value pairs corresponding to
   /// the fields of this class.
-  Map<String, dynamic> toJson() => {
+  Map<String, dynamic> toJson() =>
+      {
         'id': id,
         'album': album,
         'title': title,
@@ -413,7 +417,7 @@ class MediaControl {
 }
 
 const MethodChannel _channel =
-    const MethodChannel('ryanheise.com/audioService');
+const MethodChannel('ryanheise.com/audioService');
 
 const String _CUSTOM_PREFIX = 'custom_';
 
@@ -517,7 +521,7 @@ class AudioService {
           _browseMediaChildrenSubject.add(_browseMediaChildren);
           break;
         case 'onPlaybackStateChanged':
-          // If this event arrives too late, ignore it.
+        // If this event arrives too late, ignore it.
           if (_afterStop) return;
           final List args = call.arguments;
           int actionBits = args[2];
@@ -563,9 +567,6 @@ class AudioService {
         case 'notificationClicked':
           _notificationSubject.add(call.arguments[0]);
           break;
-
-
-
 
 
         case 'onAudioFocusGained':
@@ -702,7 +703,7 @@ class AudioService {
     _running = true;
     _afterStop = false;
     final ui.CallbackHandle handle =
-        ui.PluginUtilities.getCallbackHandle(backgroundTaskEntrypoint);
+    ui.PluginUtilities.getCallbackHandle(backgroundTaskEntrypoint);
     if (handle == null) {
       return false;
     }
@@ -725,26 +726,37 @@ class AudioService {
       'params': params,
       'androidNotificationChannelName': androidNotificationChannelName,
       'androidNotificationChannelDescription':
-          androidNotificationChannelDescription,
+      androidNotificationChannelDescription,
       'androidNotificationColor': androidNotificationColor,
       'androidNotificationIcon': androidNotificationIcon,
       'androidNotificationClickStartsActivity':
-          androidNotificationClickStartsActivity,
+      androidNotificationClickStartsActivity,
       'androidNotificationOngoing': androidNotificationOngoing,
       'androidResumeOnClick': androidResumeOnClick,
       'androidStopForegroundOnPause': androidStopForegroundOnPause,
       'androidEnableQueue': androidEnableQueue,
       'androidArtDownscaleSize': androidArtDownscaleSize != null
           ? {
-              'width': androidArtDownscaleSize.width,
-              'height': androidArtDownscaleSize.height
-            }
+        'width': androidArtDownscaleSize.width,
+        'height': androidArtDownscaleSize.height
+      }
           : null,
       'fastForwardInterval': fastForwardInterval.inMilliseconds,
       'rewindInterval': rewindInterval.inMilliseconds,
     });
     _running = await _channel.invokeMethod("isRunning");
     return success;
+  }
+
+  /// Passes through to `setState` in the background task.
+  static Future<void> setState(AudioProcessingState state, int position) async {
+    await _channel.invokeMethod('clientSetState', [state.index, position]);
+  }
+
+  /// Passes through to `setMediaItem` in the background task.
+  static Future<void> setMediaItem(MediaItem mediaItem) async {
+    await _channel.invokeMethod(
+        'clientSetMediaItem', mediaItem.toJson());
   }
 
   /// Sets the parent of the children that [browseMediaChildrenStream] broadcasts.
@@ -970,7 +982,7 @@ class AudioServiceBackground {
   /// playback.
   static Future<void> run(BackgroundAudioTask taskBuilder()) async {
     _backgroundChannel =
-        const MethodChannel('ryanheise.com/audioServiceBackground');
+    const MethodChannel('ryanheise.com/audioServiceBackground');
     WidgetsFlutterBinding.ensureInitialized();
     final task = taskBuilder();
     _cacheManager = task.cacheManager;
@@ -981,7 +993,7 @@ class AudioServiceBackground {
           String parentMediaId = args[0];
           List<MediaItem> mediaItems = await task.onLoadChildren(parentMediaId);
           List<Map> rawMediaItems =
-              mediaItems.map((item) => item.toJson()).toList();
+          mediaItems.map((item) => item.toJson()).toList();
           return rawMediaItems as dynamic;
         case 'onAudioFocusGained':
           final List args = call.arguments;
@@ -1094,11 +1106,11 @@ class AudioServiceBackground {
     });
     Map startParams = await _backgroundChannel.invokeMethod('ready');
     Duration fastForwardInterval =
-        Duration(milliseconds: startParams['fastForwardInterval']);
+    Duration(milliseconds: startParams['fastForwardInterval']);
     Duration rewindInterval =
-        Duration(milliseconds: startParams['rewindInterval']);
+    Duration(milliseconds: startParams['rewindInterval']);
     Map<String, dynamic> params =
-        startParams['params']?.cast<String, dynamic>();
+    startParams['params']?.cast<String, dynamic>();
     task._setParams(
       fastForwardInterval: fastForwardInterval,
       rewindInterval: rewindInterval,
@@ -1157,14 +1169,15 @@ class AudioServiceBackground {
       updateTime: updateTime,
     );
     List<Map> rawControls = controls
-        .map((control) => {
-              'androidIcon': control.androidIcon,
-              'label': control.label,
-              'action': control.action.index,
-            })
+        .map((control) =>
+    {
+      'androidIcon': control.androidIcon,
+      'label': control.label,
+      'action': control.action.index,
+    })
         .toList();
     final rawSystemActions =
-        systemActions.map((action) => action.index).toList();
+    systemActions.map((action) => action.index).toList();
     await _backgroundChannel.invokeMethod('setState', [
       rawControls,
       rawSystemActions,
@@ -1271,7 +1284,7 @@ class AudioServiceBackground {
   /// further information.
   static void sendCustomEvent(dynamic event) {
     SendPort sendPort =
-        IsolateNameServer.lookupPortByName(_CUSTOM_EVENT_PORT_NAME);
+    IsolateNameServer.lookupPortByName(_CUSTOM_EVENT_PORT_NAME);
     sendPort?.send(event);
   }
 }
