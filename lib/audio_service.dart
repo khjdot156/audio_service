@@ -1095,7 +1095,7 @@ class AudioServiceBackground {
           break;
 
         case 'onSetState':
-          print('===============> onSetState ${call.arguments}');
+          print('===============> onSetState ${call.arguments} - ${call.runtimeType}');
           final List args = call.arguments;
           int indexState = args[0];
           int position = args[1];
