@@ -279,7 +279,7 @@ static MPMediaItemArtwork* artwork = nil;
     [backgroundChannel invokeMethod:@"onSetSpeed" arguments:@[call.arguments]];
     result(@YES);
   } else if ([@"clientSetState" isEqualToString:call.method]) {
-    [backgroundChannel invokeMethod:@"onSetState" arguments:@[call.arguments]];
+    [backgroundChannel invokeMethod:@"onSetState" arguments:call.arguments];
     result(@YES);
   } else if ([@"clientSetMediaItem" isEqualToString:call.method]) {
     [backgroundChannel invokeMethod:@"onSetMediaItem" arguments:@[call.arguments]];
