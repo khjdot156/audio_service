@@ -987,6 +987,7 @@ class AudioServiceBackground {
     final task = taskBuilder();
     _cacheManager = task.cacheManager;
     _backgroundChannel.setMethodCallHandler((MethodCall call) async {
+      print('================> method ${call.method}');
       switch (call.method) {
         case 'onLoadChildren':
           final List args = call.arguments;
@@ -1097,9 +1098,11 @@ class AudioServiceBackground {
           final List args = call.arguments;
           int indexState = args[0];
           int position = args[1];
+          print('================> onSetState $indexState - $position');
           task.onSetState(AudioProcessingState.values[indexState], position);
           break;
         case 'onSetMediaItem':
+          print('================> onSetMediaItem ${call.arguments[0]}');
           task.onSetMediaItem(MediaItem.fromJson(call.arguments[0]));
           break;
 
