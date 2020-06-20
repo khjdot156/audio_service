@@ -125,6 +125,7 @@ static MPMediaItemArtwork* artwork = nil;
     [commandCenter.nextTrackCommand addTarget:self action:@selector(nextTrack:)];
     [commandCenter.previousTrackCommand addTarget:self action:@selector(previousTrack:)];
     if (@available(iOS 9.1, *)) {
+      [commandCenter.changePlaybackPositionCommand setEnabled:true];
       [commandCenter.changePlaybackPositionCommand addTarget:self action:@selector(changePlaybackPosition:)];
     }
     // Skipping
