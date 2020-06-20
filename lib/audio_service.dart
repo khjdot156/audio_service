@@ -1092,6 +1092,17 @@ class AudioServiceBackground {
         case 'onTaskRemoved':
           task.onTaskRemoved();
           break;
+
+        case 'onSetState':
+          final List args = call.arguments;
+          int indexState = args[0];
+          int position = args[1];
+          task.onSetState(indexState, position);
+          break;
+        case 'onSetMediaItem':
+          task.onSetMediaItem(MediaItem.fromJson(call.arguments[0]));
+          break;
+
         case 'onClose':
           task.onClose();
           break;
@@ -1336,6 +1347,10 @@ abstract class BackgroundAudioTask {
   Future<void> onStop() async {
     await AudioServiceBackground._shutdown();
   }
+
+  void onSetState(AudioProcessingState state, int position) {}
+
+  void onSetMediaItem(MediaItem mediaItem) {}
 
   /// Called when a media browser client, such as Android Auto, wants to query
   /// the available media items to display to the user.
