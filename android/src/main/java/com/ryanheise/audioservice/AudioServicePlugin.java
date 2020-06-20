@@ -421,7 +421,11 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
                 }
                 
 				case "clientSetState":
-					backgroundHandler.invokeMethod(result, "onSetState", call.arguments);
+                    List<?> indexStateAndPosition = (List<?>) call.arguments;
+                    int indexState = (Integer) indexStateAndPosition.get(0);
+                    int position = (Integer) indexStateAndPosition.get(1);
+                    
+					backgroundHandler.invokeMethod(result, "onSetState", indexState, position);
 					break;
 				case "clientSetMediaItem":
 					backgroundHandler.invokeMethod(result, "onSetMediaItem", call.arguments);
