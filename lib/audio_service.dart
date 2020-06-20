@@ -1095,10 +1095,11 @@ class AudioServiceBackground {
           break;
 
         case 'onSetState':
+          print('===============> onSetState ${call.arguments}');
           final List args = call.arguments;
           int indexState = args[0];
           int position = args[1];
-          
+
           task.onSetState(AudioProcessingState.values[indexState], position);
           break;
         case 'onSetMediaItem':
