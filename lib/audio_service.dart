@@ -1095,11 +1095,14 @@ class AudioServiceBackground {
           break;
 
         case 'onSetState':
+          print('================> onSetState $args');
+
           final List args = call.arguments;
           int indexState = args[0];
           int position = args[1];
+
           print('================> onSetState $indexState - $position');
-          task.onSetState(AudioProcessingState.values[indexState], position);
+          task.onSetState(indexState, position);
           break;
         case 'onSetMediaItem':
           print('================> onSetMediaItem ${call.arguments[0]}');
@@ -1351,7 +1354,7 @@ abstract class BackgroundAudioTask {
     await AudioServiceBackground._shutdown();
   }
 
-  void onSetState(AudioProcessingState state, int position) {}
+  void onSetState(int indexState, int position) {}
 
   void onSetMediaItem(MediaItem mediaItem) {}
 
