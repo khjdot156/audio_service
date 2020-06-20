@@ -1097,7 +1097,7 @@ class AudioServiceBackground {
           final List args = call.arguments;
           int indexState = args[0];
           int position = args[1];
-          task.onSetState(indexState, position);
+          task.onSetState(AudioProcessingState.values[indexState], position);
           break;
         case 'onSetMediaItem':
           task.onSetMediaItem(MediaItem.fromJson(call.arguments[0]));
@@ -1510,6 +1510,7 @@ abstract class ClientAudioTask {
 
   Future<void> onStop() async {}
 
+
   /// Called when your app loses audio focus. This can happen when receiving a
   /// phone call, or when another app on the device needs to play audio. The
   /// parameter indicates how to handle the audio interruption:
@@ -1542,6 +1543,9 @@ abstract class ClientAudioTask {
   void onClick(MediaButton button) {}
 
   void onPlay() {}
+
+  void onPause() {}
+
 
   /// Called when a client has requested to skip to the next item in the queue,
   /// such as via a request to [AudioService.skipToNext].
