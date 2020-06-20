@@ -128,20 +128,20 @@ static MPMediaItemArtwork* artwork = nil;
       [commandCenter.changePlaybackPositionCommand addTarget:self action:@selector(changePlaybackPosition:)];
     }
     // Skipping
-    fastForwardInterval = [call.arguments objectForKey:@"fastForwardInterval"];
-    rewindInterval = [call.arguments objectForKey:@"rewindInterval"];
-    if (fastForwardInterval.integerValue > 0) {
-      [commandCenter.skipForwardCommand setEnabled:YES];
-      [commandCenter.skipForwardCommand addTarget: self action:@selector(skipForward:)];
-      commandCenter.skipForwardCommand.preferredIntervals = @[fastForwardInterval];
-    }
-    if (rewindInterval.integerValue > 0) {
-      [commandCenter.skipBackwardCommand setEnabled:YES];
-      [commandCenter.skipBackwardCommand addTarget: self action:@selector(skipBackward:)];
-      commandCenter.skipBackwardCommand.preferredIntervals = @[rewindInterval];
-    }
+    // fastForwardInterval = [call.arguments objectForKey:@"fastForwardInterval"];
+    // rewindInterval = [call.arguments objectForKey:@"rewindInterval"];
+    // if (fastForwardInterval.integerValue > 0) {
+      // [commandCenter.skipForwardCommand setEnabled:YES];
+      // [commandCenter.skipForwardCommand addTarget: self action:@selector(skipForward:)];
+      // commandCenter.skipForwardCommand.preferredIntervals = @[fastForwardInterval];
+    // }
+    // if (rewindInterval.integerValue > 0) {
+      // [commandCenter.skipBackwardCommand setEnabled:YES];
+      // [commandCenter.skipBackwardCommand addTarget: self action:@selector(skipBackward:)];
+      // commandCenter.skipBackwardCommand.preferredIntervals = @[rewindInterval];
+    // }
     // Params
-    params = [call.arguments objectForKey:@"params"];
+    // params = [call.arguments objectForKey:@"params"];
 
     // TODO: enable more commands
     // Seeking
