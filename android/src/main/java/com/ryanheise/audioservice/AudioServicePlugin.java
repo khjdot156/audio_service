@@ -1,5 +1,5 @@
 package com.ryanheise.audioservice;
-
+import android.util.Log;
 import io.flutter.embedding.engine.plugins.service.*;
 
 import android.app.Activity;
@@ -626,11 +626,13 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 
 		@Override
 		public void onClick(MediaControl mediaControl) {
+			Log.e("TAG", "======================> onClick");
 			invokeMethod("onClick", mediaControl.ordinal());
 		}
 
 		@Override
 		public void onPause() {
+			Log.e("TAG", "======================> onPause");
 			invokeMethod("onPause");
 		}
 
@@ -666,8 +668,10 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 				DartCallback dartCallback = new DartCallback(context.getAssets(), appBundlePath, cb);
 
 				executor.executeDartCallback(dartCallback);
-			} else
+			} else {
+				Log.e("TAG", "======================> onPlay");
 				invokeMethod("onPlay");
+			}
 		}
 
 		@Override
@@ -713,6 +717,8 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 
 		@Override
 		public void onSkipToNext() {
+			Log.e("TAG", "======================> onSkipToNext");
+
 			invokeMethod("onSkipToNext");
 		}
 
