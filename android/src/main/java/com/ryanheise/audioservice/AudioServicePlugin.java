@@ -1,7 +1,5 @@
 package com.ryanheise.audioservice;
 import android.util.Log;
-import io.flutter.embedding.engine.plugins.service.*;
-
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
@@ -12,19 +10,16 @@ import android.media.AudioTrack;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.os.SystemClock;
-
-import androidx.core.app.NotificationCompat;
-
 import android.support.v4.media.MediaBrowserCompat;
-
-import androidx.media.MediaBrowserServiceCompat;
-
 import android.support.v4.media.MediaDescriptionCompat;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.RatingCompat;
 import android.support.v4.media.session.MediaControllerCompat;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+
+import androidx.core.app.NotificationCompat;
+import androidx.media.MediaBrowserServiceCompat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,7 +29,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.flutter.app.FlutterApplication;
+import io.flutter.embedding.engine.FlutterEngine;
+import io.flutter.embedding.engine.dart.DartExecutor;
+import io.flutter.embedding.engine.dart.DartExecutor.DartCallback;
+import io.flutter.embedding.engine.plugins.FlutterPlugin;
+import io.flutter.embedding.engine.plugins.activity.ActivityAware;
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
+import io.flutter.embedding.engine.plugins.service.*;
+import io.flutter.embedding.engine.plugins.shim.ShimPluginRegistry;
+import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
@@ -45,25 +48,7 @@ import io.flutter.plugin.common.PluginRegistry.Registrar;
 import io.flutter.plugin.common.PluginRegistry.ViewDestroyListener;
 import io.flutter.view.FlutterCallbackInformation;
 import io.flutter.view.FlutterMain;
-import io.flutter.embedding.engine.plugins.FlutterPlugin;
-
-import androidx.annotation.NonNull;
-
-import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding;
-import io.flutter.embedding.engine.plugins.activity.ActivityAware;
-import io.flutter.plugin.common.BinaryMessenger;
-
-import android.app.Service;
-
-import io.flutter.embedding.engine.FlutterEngine;
-import io.flutter.embedding.engine.plugins.shim.ShimPluginRegistry;
-import io.flutter.embedding.engine.dart.DartExecutor;
-import io.flutter.embedding.engine.dart.DartExecutor.DartCallback;
-
-import android.content.res.AssetManager;
-
 import io.flutter.view.FlutterNativeView;
-import io.flutter.view.FlutterRunArguments;
 
 /**
  * AudioservicePlugin
@@ -300,239 +285,250 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 		@Override
 		public void onMethodCall(MethodCall call, final Result result) {
 			switch (call.method) {
-			case "isRunning":
-				result.success(AudioService.isRunning());
-				break;
-			case "start": {
-				startResult = result; // The result will be sent after the background task actually starts.
-				if (AudioService.isRunning()) {
-					sendStartResult(false);
+				case "isRunning":
+					result.success(AudioService.isRunning());
 					break;
-				}
-				if (activity == null) {
-					System.out.println("AudioService can only be started from an activity");
-					sendStartResult(false);
-					break;
-				}
-				Map<?, ?> arguments = (Map<?, ?>)call.arguments;
-				final long callbackHandle = getLong(arguments.get("callbackHandle"));
-				params = (Map<String, Object>)arguments.get("params");
-				boolean androidNotificationClickStartsActivity = (Boolean)arguments.get("androidNotificationClickStartsActivity");
-				boolean androidNotificationOngoing = (Boolean)arguments.get("androidNotificationOngoing");
-				boolean androidResumeOnClick = (Boolean)arguments.get("androidResumeOnClick");
-				String androidNotificationChannelName = (String)arguments.get("androidNotificationChannelName");
-				String androidNotificationChannelDescription = (String)arguments.get("androidNotificationChannelDescription");
-				Integer androidNotificationColor = arguments.get("androidNotificationColor") == null ? null : getInt(arguments.get("androidNotificationColor"));
-				String androidNotificationIcon = (String)arguments.get("androidNotificationIcon");
-				final boolean androidEnableQueue = (Boolean)arguments.get("androidEnableQueue");
-				final boolean androidStopForegroundOnPause = (Boolean)arguments.get("androidStopForegroundOnPause");
-				final Map<String, Double> artDownscaleSizeMap = (Map)arguments.get("androidArtDownscaleSize");
-				final Size artDownscaleSize = artDownscaleSizeMap == null ? null
-						: new Size((int)Math.round(artDownscaleSizeMap.get("width")), (int)Math.round(artDownscaleSizeMap.get("height")));
-				fastForwardInterval = getLong(arguments.get("fastForwardInterval"));
-				rewindInterval = getLong(arguments.get("rewindInterval"));
-
-				final String appBundlePath = FlutterMain.findAppBundlePath(context.getApplicationContext());
-				backgroundHandler = new BackgroundHandler(callbackHandle, appBundlePath, androidEnableQueue);
-				AudioService.init(activity, androidResumeOnClick, androidNotificationChannelName, androidNotificationChannelDescription, NOTIFICATION_CLICK_ACTION, androidNotificationColor, androidNotificationIcon, androidNotificationClickStartsActivity, androidNotificationOngoing, androidStopForegroundOnPause, artDownscaleSize, backgroundHandler);
-
-				synchronized (connectionCallback) {
-					if (mediaController != null)
-						mediaController.getTransportControls().play();
-					else
-						playPending = true;
-				}
-
-				break;
-			}
-			case "connect":
-				if (activity != null) {
-					if (wasLaunchedFromRecents()) {
-						// We do this to avoid using the old intent.
-						activity.setIntent(new Intent(Intent.ACTION_MAIN));
+				case "start": {
+					startResult = result; // The result will be sent after the background task actually starts.
+					if (AudioService.isRunning()) {
+						sendStartResult(false);
+						break;
 					}
-					if (activity.getIntent().getAction() != null)
-						invokeMethod("notificationClicked", activity.getIntent().getAction().equals(NOTIFICATION_CLICK_ACTION));
-				}
-				if (mediaBrowser == null) {
-					connectResult = result;
-					mediaBrowser = new MediaBrowserCompat(context,
-							new ComponentName(context, AudioService.class),
-							connectionCallback,
-							null);
-					mediaBrowser.connect();
-				} else {
-					result.success(true);
-				}
-				break;
-			case "disconnect":
-				// Since the activity enters paused state, we set the intent with ACTION_MAIN.
-				activity.setIntent(new Intent(Intent.ACTION_MAIN));
+					if (activity == null) {
+						System.out.println("AudioService can only be started from an activity");
+						sendStartResult(false);
+						break;
+					}
+					Map<?, ?> arguments = (Map<?, ?>) call.arguments;
+					final long callbackHandle = getLong(arguments.get("callbackHandle"));
+					params = (Map<String, Object>) arguments.get("params");
+					boolean androidNotificationClickStartsActivity = (Boolean) arguments.get("androidNotificationClickStartsActivity");
+					boolean androidNotificationOngoing = (Boolean) arguments.get("androidNotificationOngoing");
+					boolean androidResumeOnClick = (Boolean) arguments.get("androidResumeOnClick");
+					String androidNotificationChannelName = (String) arguments.get("androidNotificationChannelName");
+					String androidNotificationChannelDescription = (String) arguments.get("androidNotificationChannelDescription");
+					Integer androidNotificationColor = arguments.get("androidNotificationColor") == null ? null : getInt(arguments.get("androidNotificationColor"));
+					String androidNotificationIcon = (String) arguments.get("androidNotificationIcon");
+					final boolean androidEnableQueue = (Boolean) arguments.get("androidEnableQueue");
+					final boolean androidStopForegroundOnPause = (Boolean) arguments.get("androidStopForegroundOnPause");
+					final Map<String, Double> artDownscaleSizeMap = (Map) arguments.get("androidArtDownscaleSize");
+					final Size artDownscaleSize = artDownscaleSizeMap == null ? null
+							: new Size((int) Math.round(artDownscaleSizeMap.get("width")), (int) Math.round(artDownscaleSizeMap.get("height")));
+					fastForwardInterval = getLong(arguments.get("fastForwardInterval"));
+					rewindInterval = getLong(arguments.get("rewindInterval"));
 
-				if (mediaController != null) {
-					mediaController.unregisterCallback(controllerCallback);
-					mediaController = null;
+					final String appBundlePath = FlutterMain.findAppBundlePath(context.getApplicationContext());
+					backgroundHandler = new BackgroundHandler(callbackHandle, appBundlePath, androidEnableQueue);
+					AudioService.init(activity, androidResumeOnClick, androidNotificationChannelName, androidNotificationChannelDescription, NOTIFICATION_CLICK_ACTION, androidNotificationColor, androidNotificationIcon, androidNotificationClickStartsActivity, androidNotificationOngoing, androidStopForegroundOnPause, artDownscaleSize, backgroundHandler);
+
+					synchronized (connectionCallback) {
+						if (mediaController != null)
+							mediaController.getTransportControls().play();
+						else
+							playPending = true;
+					}
+
+					break;
 				}
-				if (subscribedParentMediaId != null) {
-					mediaBrowser.unsubscribe(subscribedParentMediaId);
-					subscribedParentMediaId = null;
-				}
-				if (mediaBrowser != null) {
-					mediaBrowser.disconnect();
-					mediaBrowser = null;
-				}
-				result.success(true);
-				break;
-			case "setBrowseMediaParent":
-				String parentMediaId = (String)call.arguments;
-				// If the ID has changed, unsubscribe from the old one
-				if (subscribedParentMediaId != null && !subscribedParentMediaId.equals(parentMediaId)) {
-					mediaBrowser.unsubscribe(subscribedParentMediaId);
-					subscribedParentMediaId = null;
-				}
-				// Subscribe to the new one.
-				// Don't subscribe if we're still holding onto the old one
-				// Don't subscribe if the new ID is null.
-				if (subscribedParentMediaId == null && parentMediaId != null) {
-					subscribedParentMediaId = parentMediaId;
-					mediaBrowser.subscribe(parentMediaId, subscriptionCallback);
-				}
-				// If the new ID is null, send clients an empty list
-				if (subscribedParentMediaId == null) {
-					subscriptionCallback.onChildrenLoaded(subscribedParentMediaId, new ArrayList<MediaBrowserCompat.MediaItem>());
-				}
-				result.success(true);
-				break;
-			case "addQueueItem": {
-				Map<?, ?> rawMediaItem = (Map<?, ?>)call.arguments;
-				MediaMetadataCompat mediaMetadata = createMediaMetadata(rawMediaItem);
-				mediaController.addQueueItem(mediaMetadata.getDescription());
-				result.success(true);
-				break;
-			}
-			case "addQueueItemAt": {
-				List<?> queueAndIndex = (List<?>)call.arguments;
-				Map<?, ?> rawMediaItem = (Map<?, ?>)queueAndIndex.get(0);
-				int index = (Integer)queueAndIndex.get(1);
-				MediaMetadataCompat mediaMetadata = createMediaMetadata(rawMediaItem);
-				mediaController.addQueueItem(mediaMetadata.getDescription(), index);
-				result.success(true);
-				break;
-			}
-			case "removeQueueItem": {
-				Map<?, ?> rawMediaItem = (Map<?, ?>)call.arguments;
-				MediaMetadataCompat mediaMetadata = createMediaMetadata(rawMediaItem);
-				mediaController.removeQueueItem(mediaMetadata.getDescription());
-				result.success(true);
-				break;
-			}
-			case "updateQueue": {
-				backgroundHandler.invokeMethod(result, "onUpdateQueue", call.arguments);
-				break;
-			}
-			case "updateMediaItem": {
-				backgroundHandler.invokeMethod(result, "onUpdateMediaItem", call.arguments);
-				break;
-			}
-			//case "setVolumeTo"
-			//case "adjustVolume"
-			case "click":
-				int buttonIndex = (int)call.arguments;
-				if (backgroundHandler != null)
-					backgroundHandler.invokeMethod("onClick", buttonIndex);
-				result.success(true);
-				break;
-			case "prepare":
-				mediaController.getTransportControls().prepare();
-				result.success(true);
-				break;
-			case "prepareFromMediaId": {
-				String mediaId = (String)call.arguments;
-				mediaController.getTransportControls().prepareFromMediaId(mediaId, new Bundle());
-				result.success(true);
-				break;
-			}
-			//prepareFromSearch
-			//prepareFromUri
-			case "play":
-				mediaController.getTransportControls().play();
-				result.success(true);
-				break;
-			case "playFromMediaId": {
-				String mediaId = (String)call.arguments;
-				mediaController.getTransportControls().playFromMediaId(mediaId, null);
-				result.success(true);
-				break;
-			}
-			case "playMediaItem": {
-				Map<?, ?> rawMediaItem = (Map<?, ?>)call.arguments;
-				MediaMetadataCompat mediaMetadata = createMediaMetadata(rawMediaItem);
-				AudioService.instance.playMediaItem(mediaMetadata.getDescription());
-				result.success(true);
-				break;
-			}
-			//playFromSearch
-			//playFromUri
-			case "skipToQueueItem": {
-				String mediaId = (String)call.arguments;
-				Integer queueItemId = queueItemIds.get(mediaId);
-				if (queueItemId != null) {
-					mediaController.getTransportControls().skipToQueueItem(queueItemId);
+				case "connect":
+					if (activity != null) {
+						if (wasLaunchedFromRecents()) {
+							// We do this to avoid using the old intent.
+							activity.setIntent(new Intent(Intent.ACTION_MAIN));
+						}
+						if (activity.getIntent().getAction() != null)
+							invokeMethod("notificationClicked", activity.getIntent().getAction().equals(NOTIFICATION_CLICK_ACTION));
+					}
+					if (mediaBrowser == null) {
+						connectResult = result;
+						mediaBrowser = new MediaBrowserCompat(context,
+								new ComponentName(context, AudioService.class),
+								connectionCallback,
+								null);
+						mediaBrowser.connect();
+					} else {
+						result.success(true);
+					}
+					break;
+				case "disconnect":
+					// Since the activity enters paused state, we set the intent with ACTION_MAIN.
+					activity.setIntent(new Intent(Intent.ACTION_MAIN));
+
+					if (mediaController != null) {
+						mediaController.unregisterCallback(controllerCallback);
+						mediaController = null;
+					}
+					if (subscribedParentMediaId != null) {
+						mediaBrowser.unsubscribe(subscribedParentMediaId);
+						subscribedParentMediaId = null;
+					}
+					if (mediaBrowser != null) {
+						mediaBrowser.disconnect();
+						mediaBrowser = null;
+					}
 					result.success(true);
-				} else {
-					result.success(false);
+					break;
+				case "setBrowseMediaParent":
+					String parentMediaId = (String) call.arguments;
+					// If the ID has changed, unsubscribe from the old one
+					if (subscribedParentMediaId != null && !subscribedParentMediaId.equals(parentMediaId)) {
+						mediaBrowser.unsubscribe(subscribedParentMediaId);
+						subscribedParentMediaId = null;
+					}
+					// Subscribe to the new one.
+					// Don't subscribe if we're still holding onto the old one
+					// Don't subscribe if the new ID is null.
+					if (subscribedParentMediaId == null && parentMediaId != null) {
+						subscribedParentMediaId = parentMediaId;
+						mediaBrowser.subscribe(parentMediaId, subscriptionCallback);
+					}
+					// If the new ID is null, send clients an empty list
+					if (subscribedParentMediaId == null) {
+						subscriptionCallback.onChildrenLoaded(subscribedParentMediaId, new ArrayList<MediaBrowserCompat.MediaItem>());
+					}
+					result.success(true);
+					break;
+				case "addQueueItem": {
+					Map<?, ?> rawMediaItem = (Map<?, ?>) call.arguments;
+					MediaMetadataCompat mediaMetadata = createMediaMetadata(rawMediaItem);
+					mediaController.addQueueItem(mediaMetadata.getDescription());
+					result.success(true);
+					break;
 				}
-				break;
-			}
-			case "pause":
-				mediaController.getTransportControls().pause();
-				result.success(true);
-				break;
-			case "stop":
-				mediaController.getTransportControls().stop();
-				result.success(true);
-				break;
-			case "seekTo":
-				int pos = (Integer)call.arguments;
-				mediaController.getTransportControls().seekTo(pos);
-				result.success(true);
-				break;
-			case "skipToNext":
-				mediaController.getTransportControls().skipToNext();
-				result.success(true);
-				break;
-			case "skipToPrevious":
-				mediaController.getTransportControls().skipToPrevious();
-				result.success(true);
-				break;
-			case "fastForward":
-				mediaController.getTransportControls().fastForward();
-				result.success(true);
-				break;
-			case "rewind":
-				mediaController.getTransportControls().rewind();
-				result.success(true);
-				break;
-			case "setRating":
-				HashMap<String, Object> arguments = (HashMap<String, Object>)call.arguments;
-				if (call.arguments != null) {
-					Bundle extrasBundle = new Bundle();
-					extrasBundle.putSerializable("extrasMap", (HashMap<String, Object>)arguments.get("extras"));
-					mediaController.getTransportControls().setRating(raw2rating((Map<String, Object>)arguments.get("rating")), extrasBundle);
-				} else {
-					mediaController.getTransportControls().setRating(raw2rating((Map<String, Object>)arguments.get("rating")));
+				case "addQueueItemAt": {
+					List<?> queueAndIndex = (List<?>) call.arguments;
+					Map<?, ?> rawMediaItem = (Map<?, ?>) queueAndIndex.get(0);
+					int index = (Integer) queueAndIndex.get(1);
+					MediaMetadataCompat mediaMetadata = createMediaMetadata(rawMediaItem);
+					mediaController.addQueueItem(mediaMetadata.getDescription(), index);
+					result.success(true);
+					break;
 				}
-			case "setSpeed":
-				float speed = (float)((double)((Double)call.arguments));
-				if (backgroundHandler != null)
-					backgroundHandler.invokeMethod("onSetSpeed", speed);
-				result.success(true);
-				break;
-			default:
-				if (backgroundHandler != null) {
-					backgroundHandler.channel.invokeMethod(call.method, call.arguments, result);
+				case "removeQueueItem": {
+					Map<?, ?> rawMediaItem = (Map<?, ?>) call.arguments;
+					MediaMetadataCompat mediaMetadata = createMediaMetadata(rawMediaItem);
+					mediaController.removeQueueItem(mediaMetadata.getDescription());
+					result.success(true);
+					break;
 				}
-				break;
+				case "updateQueue": {
+					backgroundHandler.invokeMethod(result, "onUpdateQueue", call.arguments);
+					break;
+				}
+				case "updateMediaItem": {
+					backgroundHandler.invokeMethod(result, "onUpdateMediaItem", call.arguments);
+					break;
+				}
+
+				case "clientSetState":
+					List<?> indexStateAndPosition = (List<?>) call.arguments;
+					int indexState = (Integer) indexStateAndPosition.get(0);
+					int position = (Integer) indexStateAndPosition.get(1);
+
+					backgroundHandler.invokeMethod(result, "onSetState", indexState, position);
+					break;
+				case "clientSetMediaItem":
+					backgroundHandler.invokeMethod(result, "onSetMediaItem", call.arguments);
+					break;
+				//case "setVolumeTo"
+				//case "adjustVolume"
+				case "click":
+					int buttonIndex = (int) call.arguments;
+					if (backgroundHandler != null)
+						backgroundHandler.invokeMethod("onClick", buttonIndex);
+					result.success(true);
+					break;
+				case "prepare":
+					mediaController.getTransportControls().prepare();
+					result.success(true);
+					break;
+				case "prepareFromMediaId": {
+					String mediaId = (String) call.arguments;
+					mediaController.getTransportControls().prepareFromMediaId(mediaId, new Bundle());
+					result.success(true);
+					break;
+				}
+				//prepareFromSearch
+				//prepareFromUri
+				case "play":
+					mediaController.getTransportControls().play();
+					result.success(true);
+					break;
+				case "playFromMediaId": {
+					String mediaId = (String) call.arguments;
+					mediaController.getTransportControls().playFromMediaId(mediaId, null);
+					result.success(true);
+					break;
+				}
+				case "playMediaItem": {
+					Map<?, ?> rawMediaItem = (Map<?, ?>) call.arguments;
+					MediaMetadataCompat mediaMetadata = createMediaMetadata(rawMediaItem);
+					AudioService.instance.playMediaItem(mediaMetadata.getDescription());
+					result.success(true);
+					break;
+				}
+				//playFromSearch
+				//playFromUri
+				case "skipToQueueItem": {
+					String mediaId = (String) call.arguments;
+					Integer queueItemId = queueItemIds.get(mediaId);
+					if (queueItemId != null) {
+						mediaController.getTransportControls().skipToQueueItem(queueItemId);
+						result.success(true);
+					} else {
+						result.success(false);
+					}
+					break;
+				}
+				case "pause":
+					mediaController.getTransportControls().pause();
+					result.success(true);
+					break;
+				case "stop":
+					mediaController.getTransportControls().stop();
+					result.success(true);
+					break;
+				case "seekTo":
+					int pos = (Integer) call.arguments;
+					mediaController.getTransportControls().seekTo(pos);
+					result.success(true);
+					break;
+				case "skipToNext":
+					mediaController.getTransportControls().skipToNext();
+					result.success(true);
+					break;
+				case "skipToPrevious":
+					mediaController.getTransportControls().skipToPrevious();
+					result.success(true);
+					break;
+				case "fastForward":
+					mediaController.getTransportControls().fastForward();
+					result.success(true);
+					break;
+				case "rewind":
+					mediaController.getTransportControls().rewind();
+					result.success(true);
+					break;
+				case "setRating":
+					HashMap<String, Object> arguments = (HashMap<String, Object>) call.arguments;
+					if (call.arguments != null) {
+						Bundle extrasBundle = new Bundle();
+						extrasBundle.putSerializable("extrasMap", (HashMap<String, Object>) arguments.get("extras"));
+						mediaController.getTransportControls().setRating(raw2rating((Map<String, Object>) arguments.get("rating")), extrasBundle);
+					} else {
+						mediaController.getTransportControls().setRating(raw2rating((Map<String, Object>) arguments.get("rating")));
+					}
+				case "setSpeed":
+					float speed = (float) ((double) ((Double) call.arguments));
+					if (backgroundHandler != null)
+						backgroundHandler.invokeMethod("onSetSpeed", speed);
+					result.success(true);
+					break;
+				default:
+					if (backgroundHandler != null) {
+						backgroundHandler.channel.invokeMethod(call.method, call.arguments, result);
+					}
+					break;
 			}
 		}
 
@@ -566,6 +562,7 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 
 		@Override
 		public void onAudioFocusGained() {
+//			mainClientHandler.invokeMethod("onAudioFocusGained", interruption.ordinal());
 			invokeMethod("onAudioFocusGained", interruption.ordinal());
 			interruption = AudioInterruption.temporaryPause;
 		}
@@ -573,23 +570,27 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 		@Override
 		public void onAudioFocusLost() {
 			interruption = AudioInterruption.pause;
+//			mainClientHandler.invokeMethod("onAudioFocusLost", interruption.ordinal());
 			invokeMethod("onAudioFocusLost", interruption.ordinal());
 		}
 
 		@Override
 		public void onAudioFocusLostTransient() {
 			interruption = AudioInterruption.temporaryPause;
+//			mainClientHandler.invokeMethod("onAudioFocusLost", interruption.ordinal());
 			invokeMethod("onAudioFocusLost", interruption.ordinal());
 		}
 
 		@Override
 		public void onAudioFocusLostTransientCanDuck() {
 			interruption = AudioInterruption.temporaryDuck;
+//			mainClientHandler.invokeMethod("onAudioFocusLost", interruption.ordinal());
 			invokeMethod("onAudioFocusLost", interruption.ordinal());
 		}
 
 		@Override
 		public void onAudioBecomingNoisy() {
+//			mainClientHandler.invokeMethod("onAudioBecomingNoisy");
 			invokeMethod("onAudioBecomingNoisy");
 		}
 
@@ -611,11 +612,11 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 
 					@Override
 					public void success(Object obj) {
-						List<Map<?, ?>> rawMediaItems = (List<Map<?, ?>>)obj;
+						List<Map<?, ?>> rawMediaItems = (List<Map<?, ?>>) obj;
 						List<MediaBrowserCompat.MediaItem> mediaItems = new ArrayList<MediaBrowserCompat.MediaItem>();
 						for (Map<?, ?> rawMediaItem : rawMediaItems) {
 							MediaMetadataCompat mediaMetadata = createMediaMetadata(rawMediaItem);
-							mediaItems.add(new MediaBrowserCompat.MediaItem(mediaMetadata.getDescription(), (Boolean)rawMediaItem.get("playable") ? MediaBrowserCompat.MediaItem.FLAG_PLAYABLE : MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
+							mediaItems.add(new MediaBrowserCompat.MediaItem(mediaMetadata.getDescription(), (Boolean) rawMediaItem.get("playable") ? MediaBrowserCompat.MediaItem.FLAG_PLAYABLE : MediaBrowserCompat.MediaItem.FLAG_BROWSABLE));
 						}
 						result.sendResult(mediaItems);
 					}
@@ -626,13 +627,16 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 
 		@Override
 		public void onClick(MediaControl mediaControl) {
-			Log.e("TAG", "======================> onClick");
+//			mainClientHandler.invokeMethod("onClick", mediaControl.ordinal());
+			Log.e("TAG", "=====================> onClick");
 			invokeMethod("onClick", mediaControl.ordinal());
 		}
 
 		@Override
 		public void onPause() {
-			Log.e("TAG", "======================> onPause");
+//			mainClientHandler.invokeMethod("onPause");
+			Log.e("TAG", "=====================> onPause");
+
 			invokeMethod("onPause");
 		}
 
@@ -669,7 +673,9 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 
 				executor.executeDartCallback(dartCallback);
 			} else {
-				Log.e("TAG", "======================> onPlay");
+//				mainClientHandler.invokeMethod("onPlay");
+				Log.e("TAG", "=====================> onPlay");
+
 				invokeMethod("onPlay");
 			}
 		}
@@ -686,6 +692,7 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 
 		@Override
 		public void onStop() {
+//			mainClientHandler.invokeMethod("onStop");
 			invokeMethod("onStop");
 		}
 
@@ -711,34 +718,39 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 
 		@Override
 		public void onSkipToQueueItem(long queueItemId) {
-			String mediaId = queueMediaIds.get((int)queueItemId);
+			String mediaId = queueMediaIds.get((int) queueItemId);
 			invokeMethod("onSkipToQueueItem", mediaId);
 		}
 
 		@Override
 		public void onSkipToNext() {
-			Log.e("TAG", "======================> onSkipToNext");
+			Log.e("TAG", "=====================> onSkipToNext");
 
+//            mainClientHandler.invokeMethod("onSkipToNext");
 			invokeMethod("onSkipToNext");
 		}
 
 		@Override
 		public void onSkipToPrevious() {
+//			mainClientHandler.invokeMethod("onSkipToPrevious");
 			invokeMethod("onSkipToPrevious");
 		}
 
 		@Override
 		public void onFastForward() {
+//			mainClientHandler.invokeMethod("onFastForward");
 			invokeMethod("onFastForward");
 		}
 
 		@Override
 		public void onRewind() {
+//			mainClientHandler.invokeMethod("onRewind");
 			invokeMethod("onRewind");
 		}
 
 		@Override
 		public void onSeekTo(long pos) {
+//			mainClientHandler.invokeMethod("onSeekTo", pos);
 			invokeMethod("onSeekTo", pos);
 		}
 
@@ -759,6 +771,7 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 
 		@Override
 		public void onClose() {
+//			mainClientHandler.invokeMethod("onClose");
 			invokeMethod("onClose");
 		}
 
@@ -766,98 +779,98 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 		public void onMethodCall(MethodCall call, Result result) {
 			Context context = AudioService.instance;
 			switch (call.method) {
-			case "ready":
-				Map<String, Object> startParams = new HashMap<String, Object>();
-				startParams.put("fastForwardInterval", mainClientHandler.fastForwardInterval);
-				startParams.put("rewindInterval", mainClientHandler.rewindInterval);
-				startParams.put("params", mainClientHandler.params);
-				result.success(startParams);
-				sendStartResult(true);
-				// If the client subscribed to browse children before we
-				// started, process the pending request.
-				// TODO: It should be possible to browse children before
-				// starting.
-				if (subscribedParentMediaId != null)
-					AudioService.instance.notifyChildrenChanged(subscribedParentMediaId);
-				break;
-			case "setMediaItem":
-				Map<?, ?> rawMediaItem = (Map<?, ?>)call.arguments;
-				MediaMetadataCompat mediaMetadata = createMediaMetadata(rawMediaItem);
-				AudioService.instance.setMetadata(mediaMetadata);
-				result.success(true);
-				break;
-			case "setQueue":
-				List<Map<?, ?>> rawQueue = (List<Map<?, ?>>)call.arguments;
-				List<MediaSessionCompat.QueueItem> queue = raw2queue(rawQueue);
-				AudioService.instance.setQueue(queue);
-				result.success(true);
-				break;
-			case "setState":
-				List<Object> args = (List<Object>)call.arguments;
-				List<Map<?, ?>> rawControls = (List<Map<?, ?>>)args.get(0);
-				List<Integer> rawSystemActions = (List<Integer>)args.get(1);
-				AudioProcessingState processingState = AudioProcessingState.values()[(Integer)args.get(2)];
-				boolean playing = (Boolean)args.get(3);
-				long position = getLong(args.get(4));
-				long bufferedPosition = getLong(args.get(5));
-				float speed = (float)((double)((Double)args.get(6)));
-				long updateTimeSinceEpoch = args.get(7) == null ? System.currentTimeMillis() : getLong(args.get(7));
-				List<Object> compactActionIndexList = (List<Object>)args.get(8);
+				case "ready":
+					Map<String, Object> startParams = new HashMap<String, Object>();
+					startParams.put("fastForwardInterval", mainClientHandler.fastForwardInterval);
+					startParams.put("rewindInterval", mainClientHandler.rewindInterval);
+					startParams.put("params", mainClientHandler.params);
+					result.success(startParams);
+					sendStartResult(true);
+					// If the client subscribed to browse children before we
+					// started, process the pending request.
+					// TODO: It should be possible to browse children before
+					// starting.
+					if (subscribedParentMediaId != null)
+						AudioService.instance.notifyChildrenChanged(subscribedParentMediaId);
+					break;
+				case "setMediaItem":
+					Map<?, ?> rawMediaItem = (Map<?, ?>) call.arguments;
+					MediaMetadataCompat mediaMetadata = createMediaMetadata(rawMediaItem);
+					AudioService.instance.setMetadata(mediaMetadata);
+					result.success(true);
+					break;
+				case "setQueue":
+					List<Map<?, ?>> rawQueue = (List<Map<?, ?>>) call.arguments;
+					List<MediaSessionCompat.QueueItem> queue = raw2queue(rawQueue);
+					AudioService.instance.setQueue(queue);
+					result.success(true);
+					break;
+				case "setState":
+					List<Object> args = (List<Object>) call.arguments;
+					List<Map<?, ?>> rawControls = (List<Map<?, ?>>) args.get(0);
+					List<Integer> rawSystemActions = (List<Integer>) args.get(1);
+					AudioProcessingState processingState = AudioProcessingState.values()[(Integer) args.get(2)];
+					boolean playing = (Boolean) args.get(3);
+					long position = getLong(args.get(4));
+					long bufferedPosition = getLong(args.get(5));
+					float speed = (float) ((double) ((Double) args.get(6)));
+					long updateTimeSinceEpoch = args.get(7) == null ? System.currentTimeMillis() : getLong(args.get(7));
+					List<Object> compactActionIndexList = (List<Object>) args.get(8);
 
-				// On the flutter side, we represent the update time relative to the epoch.
-				// On the native side, we must represent the update time relative to the boot time.
-				long updateTimeSinceBoot = updateTimeSinceEpoch - bootTime;
+					// On the flutter side, we represent the update time relative to the epoch.
+					// On the native side, we must represent the update time relative to the boot time.
+					long updateTimeSinceBoot = updateTimeSinceEpoch - bootTime;
 
-				List<NotificationCompat.Action> actions = new ArrayList<NotificationCompat.Action>();
-				int actionBits = 0;
-				for (Map<?, ?> rawControl : rawControls) {
-					String resource = (String)rawControl.get("androidIcon");
-					int actionCode = 1 << ((Integer)rawControl.get("action"));
-					actionBits |= actionCode;
-					actions.add(AudioService.instance.action(resource, (String)rawControl.get("label"), actionCode));
-				}
-				for (Integer rawSystemAction : rawSystemActions) {
-					int actionCode = 1 << rawSystemAction;
-					actionBits |= actionCode;
-				}
-				int[] compactActionIndices = null;
-				if (compactActionIndexList != null) {
-					compactActionIndices = new int[Math.min(AudioService.MAX_COMPACT_ACTIONS, compactActionIndexList.size())];
-					for (int i = 0; i < compactActionIndices.length; i++)
-						compactActionIndices[i] = (Integer)compactActionIndexList.get(i);
-				}
-				AudioService.instance.setState(actions, actionBits, compactActionIndices, processingState, playing, position, bufferedPosition, speed, updateTimeSinceBoot);
-				result.success(true);
-				break;
-			case "stopped":
-				clear();
-				result.success(true);
-				break;
-			case "notifyChildrenChanged":
-				String parentMediaId = (String)call.arguments;
-				AudioService.instance.notifyChildrenChanged(parentMediaId);
-				result.success(true);
-				break;
-			case "androidForceEnableMediaButtons":
-				// Just play a short amount of silence. This convinces Android
-				// that we are playing "real" audio so that it will route
-				// media buttons to us.
-				// See: https://issuetracker.google.com/issues/65344811
-				if (silenceAudioTrack == null) {
-					silence = new byte[2048];
-					silenceAudioTrack = new AudioTrack(
-							AudioManager.STREAM_MUSIC,
-							SILENCE_SAMPLE_RATE,
-							AudioFormat.CHANNEL_CONFIGURATION_MONO,
-							AudioFormat.ENCODING_PCM_8BIT,
-							silence.length,
-							AudioTrack.MODE_STATIC);
-					silenceAudioTrack.write(silence, 0, silence.length);
-				}
-				silenceAudioTrack.reloadStaticData();
-				silenceAudioTrack.play();
-				result.success(true);
-				break;
+					List<NotificationCompat.Action> actions = new ArrayList<NotificationCompat.Action>();
+					int actionBits = 0;
+					for (Map<?, ?> rawControl : rawControls) {
+						String resource = (String) rawControl.get("androidIcon");
+						int actionCode = 1 << ((Integer) rawControl.get("action"));
+						actionBits |= actionCode;
+						actions.add(AudioService.instance.action(resource, (String) rawControl.get("label"), actionCode));
+					}
+					for (Integer rawSystemAction : rawSystemActions) {
+						int actionCode = 1 << rawSystemAction;
+						actionBits |= actionCode;
+					}
+					int[] compactActionIndices = null;
+					if (compactActionIndexList != null) {
+						compactActionIndices = new int[Math.min(AudioService.MAX_COMPACT_ACTIONS, compactActionIndexList.size())];
+						for (int i = 0; i < compactActionIndices.length; i++)
+							compactActionIndices[i] = (Integer) compactActionIndexList.get(i);
+					}
+					AudioService.instance.setState(actions, actionBits, compactActionIndices, processingState, playing, position, bufferedPosition, speed, updateTimeSinceBoot);
+					result.success(true);
+					break;
+				case "stopped":
+					clear();
+					result.success(true);
+					break;
+				case "notifyChildrenChanged":
+					String parentMediaId = (String) call.arguments;
+					AudioService.instance.notifyChildrenChanged(parentMediaId);
+					result.success(true);
+					break;
+				case "androidForceEnableMediaButtons":
+					// Just play a short amount of silence. This convinces Android
+					// that we are playing "real" audio so that it will route
+					// media buttons to us.
+					// See: https://issuetracker.google.com/issues/65344811
+					if (silenceAudioTrack == null) {
+						silence = new byte[2048];
+						silenceAudioTrack = new AudioTrack(
+								AudioManager.STREAM_MUSIC,
+								SILENCE_SAMPLE_RATE,
+								AudioFormat.CHANNEL_CONFIGURATION_MONO,
+								AudioFormat.ENCODING_PCM_8BIT,
+								silence.length,
+								AudioTrack.MODE_STATIC);
+						silenceAudioTrack.write(silence, 0, silence.length);
+					}
+					silenceAudioTrack.reloadStaticData();
+					silenceAudioTrack.play();
+					result.success(true);
+					break;
 			}
 		}
 
@@ -911,22 +924,22 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 
 	private static RatingCompat raw2rating(Map<String, Object> raw) {
 		if (raw == null) return null;
-		Integer type = (Integer)raw.get("type");
+		Integer type = (Integer) raw.get("type");
 		Object value = raw.get("value");
 		if (value != null) {
 			switch (type) {
-			case RatingCompat.RATING_3_STARS:
-			case RatingCompat.RATING_4_STARS:
-			case RatingCompat.RATING_5_STARS:
-				return RatingCompat.newStarRating(type, (int)value);
-			case RatingCompat.RATING_HEART:
-				return RatingCompat.newHeartRating((boolean)value);
-			case RatingCompat.RATING_PERCENTAGE:
-				return RatingCompat.newPercentageRating((float)value);
-			case RatingCompat.RATING_THUMB_UP_DOWN:
-				return RatingCompat.newThumbRating((boolean)value);
-			default:
-				return RatingCompat.newUnratedRating(type);
+				case RatingCompat.RATING_3_STARS:
+				case RatingCompat.RATING_4_STARS:
+				case RatingCompat.RATING_5_STARS:
+					return RatingCompat.newStarRating(type, (int) value);
+				case RatingCompat.RATING_HEART:
+					return RatingCompat.newHeartRating((boolean) value);
+				case RatingCompat.RATING_PERCENTAGE:
+					return RatingCompat.newPercentageRating((float) value);
+				case RatingCompat.RATING_THUMB_UP_DOWN:
+					return RatingCompat.newThumbRating((boolean) value);
+				default:
+					return RatingCompat.newUnratedRating(type);
 			}
 		} else {
 			return RatingCompat.newUnratedRating(type);
@@ -938,22 +951,22 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 		raw.put("type", rating.getRatingStyle());
 		if (rating.isRated()) {
 			switch (rating.getRatingStyle()) {
-			case RatingCompat.RATING_3_STARS:
-			case RatingCompat.RATING_4_STARS:
-			case RatingCompat.RATING_5_STARS:
-				raw.put("value", rating.getStarRating());
-				break;
-			case RatingCompat.RATING_HEART:
-				raw.put("value", rating.hasHeart());
-				break;
-			case RatingCompat.RATING_PERCENTAGE:
-				raw.put("value", rating.getPercentRating());
-				break;
-			case RatingCompat.RATING_THUMB_UP_DOWN:
-				raw.put("value", rating.isThumbUp());
-				break;
-			case RatingCompat.RATING_NONE:
-				raw.put("value", null);
+				case RatingCompat.RATING_3_STARS:
+				case RatingCompat.RATING_4_STARS:
+				case RatingCompat.RATING_5_STARS:
+					raw.put("value", rating.getStarRating());
+					break;
+				case RatingCompat.RATING_HEART:
+					raw.put("value", rating.hasHeart());
+					break;
+				case RatingCompat.RATING_PERCENTAGE:
+					raw.put("value", rating.getPercentRating());
+					break;
+				case RatingCompat.RATING_THUMB_UP_DOWN:
+					raw.put("value", rating.isThumbUp());
+					break;
+				case RatingCompat.RATING_NONE:
+					raw.put("value", null);
 			}
 		} else {
 			raw.put("value", null);
@@ -961,29 +974,27 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 		return raw;
 	}
 
-	private static String metadataToString(MediaMetadataCompat mediaMetadata, String key) {
-		CharSequence value = mediaMetadata.getText(MediaMetadataCompat.METADATA_KEY_ALBUM);
-		if (value != null && value.length() > 0)
-			return value.toString();
-		return null;
-	}
-
 	private static Map<?, ?> mediaMetadata2raw(MediaMetadataCompat mediaMetadata) {
 		if (mediaMetadata == null) return null;
 		MediaDescriptionCompat description = mediaMetadata.getDescription();
 		Map<String, Object> raw = new HashMap<String, Object>();
 		raw.put("id", description.getMediaId());
-		raw.put("album", metadataToString(mediaMetadata, MediaMetadataCompat.METADATA_KEY_ALBUM));
-		raw.put("title", metadataToString(mediaMetadata, MediaMetadataCompat.METADATA_KEY_TITLE));
+		raw.put("album", mediaMetadata.getText(MediaMetadataCompat.METADATA_KEY_ALBUM).toString());
+		raw.put("title", mediaMetadata.getText(MediaMetadataCompat.METADATA_KEY_TITLE).toString());
 		if (description.getIconUri() != null)
 			raw.put("artUri", description.getIconUri().toString());
-		raw.put("artist", metadataToString(mediaMetadata, MediaMetadataCompat.METADATA_KEY_ARTIST));
-		raw.put("genre", metadataToString(mediaMetadata, MediaMetadataCompat.METADATA_KEY_GENRE));
+		if (mediaMetadata.containsKey(MediaMetadataCompat.METADATA_KEY_ARTIST))
+			raw.put("artist", mediaMetadata.getText(MediaMetadataCompat.METADATA_KEY_ARTIST).toString());
+		if (mediaMetadata.containsKey(MediaMetadataCompat.METADATA_KEY_GENRE))
+			raw.put("genre", mediaMetadata.getText(MediaMetadataCompat.METADATA_KEY_GENRE).toString());
 		if (mediaMetadata.containsKey(MediaMetadataCompat.METADATA_KEY_DURATION))
 			raw.put("duration", mediaMetadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION));
-		raw.put("displayTitle", metadataToString(mediaMetadata, MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE));
-		raw.put("displaySubtitle", metadataToString(mediaMetadata, MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE));
-		raw.put("displayDescription", metadataToString(mediaMetadata, MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION));
+		if (mediaMetadata.containsKey(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE))
+			raw.put("displayTitle", mediaMetadata.getText(MediaMetadataCompat.METADATA_KEY_DISPLAY_TITLE).toString());
+		if (mediaMetadata.containsKey(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE))
+			raw.put("displaySubtitle", mediaMetadata.getText(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE).toString());
+		if (mediaMetadata.containsKey(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION))
+			raw.put("displayDescription", mediaMetadata.getText(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION).toString());
 		if (mediaMetadata.containsKey(MediaMetadataCompat.METADATA_KEY_RATING)) {
 			raw.put("rating", rating2raw(mediaMetadata.getRating(MediaMetadataCompat.METADATA_KEY_RATING)));
 		}
@@ -1005,18 +1016,18 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 
 	private static MediaMetadataCompat createMediaMetadata(Map<?, ?> rawMediaItem) {
 		return AudioService.createMediaMetadata(
-				(String)rawMediaItem.get("id"),
-				(String)rawMediaItem.get("album"),
-				(String)rawMediaItem.get("title"),
-				(String)rawMediaItem.get("artist"),
-				(String)rawMediaItem.get("genre"),
+				(String) rawMediaItem.get("id"),
+				(String) rawMediaItem.get("album"),
+				(String) rawMediaItem.get("title"),
+				(String) rawMediaItem.get("artist"),
+				(String) rawMediaItem.get("genre"),
 				getLong(rawMediaItem.get("duration")),
-				(String)rawMediaItem.get("artUri"),
-				(String)rawMediaItem.get("displayTitle"),
-				(String)rawMediaItem.get("displaySubtitle"),
-				(String)rawMediaItem.get("displayDescription"),
-				raw2rating((Map<String, Object>)rawMediaItem.get("rating")),
-				(Map<?, ?>)rawMediaItem.get("extras")
+				(String) rawMediaItem.get("artUri"),
+				(String) rawMediaItem.get("displayTitle"),
+				(String) rawMediaItem.get("displaySubtitle"),
+				(String) rawMediaItem.get("displayDescription"),
+				raw2rating((Map<String, Object>) rawMediaItem.get("rating")),
+				(Map<?, ?>) rawMediaItem.get("extras")
 		);
 	}
 
@@ -1037,10 +1048,11 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 	}
 
 	public static Long getLong(Object o) {
-		return (o == null || o instanceof Long) ? (Long)o : new Long(((Integer)o).intValue());
+		return (o == null || o instanceof Long) ? (Long) o : new Long(((Integer) o).intValue());
 	}
 
 	public static Integer getInt(Object o) {
-		return (o == null || o instanceof Integer) ? (Integer)o : new Integer((int)((Long)o).longValue());
+		return (o == null || o instanceof Integer) ? (Integer) o : new Integer((int) ((Long) o).longValue());
 	}
 }
+
