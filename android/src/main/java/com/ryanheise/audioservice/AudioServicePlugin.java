@@ -562,7 +562,7 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 
 		@Override
 		public void onAudioFocusGained() {
-//			mainClientHandler.invokeMethod("onAudioFocusGained", interruption.ordinal());
+			mainClientHandler.invokeMethod("onAudioFocusGained", interruption.ordinal());
 			invokeMethod("onAudioFocusGained", interruption.ordinal());
 			interruption = AudioInterruption.temporaryPause;
 		}
@@ -570,27 +570,27 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 		@Override
 		public void onAudioFocusLost() {
 			interruption = AudioInterruption.pause;
-//			mainClientHandler.invokeMethod("onAudioFocusLost", interruption.ordinal());
+			mainClientHandler.invokeMethod("onAudioFocusLost", interruption.ordinal());
 			invokeMethod("onAudioFocusLost", interruption.ordinal());
 		}
 
 		@Override
 		public void onAudioFocusLostTransient() {
 			interruption = AudioInterruption.temporaryPause;
-//			mainClientHandler.invokeMethod("onAudioFocusLost", interruption.ordinal());
+			mainClientHandler.invokeMethod("onAudioFocusLost", interruption.ordinal());
 			invokeMethod("onAudioFocusLost", interruption.ordinal());
 		}
 
 		@Override
 		public void onAudioFocusLostTransientCanDuck() {
 			interruption = AudioInterruption.temporaryDuck;
-//			mainClientHandler.invokeMethod("onAudioFocusLost", interruption.ordinal());
+			mainClientHandler.invokeMethod("onAudioFocusLost", interruption.ordinal());
 			invokeMethod("onAudioFocusLost", interruption.ordinal());
 		}
 
 		@Override
 		public void onAudioBecomingNoisy() {
-//			mainClientHandler.invokeMethod("onAudioBecomingNoisy");
+			mainClientHandler.invokeMethod("onAudioBecomingNoisy");
 			invokeMethod("onAudioBecomingNoisy");
 		}
 
@@ -627,16 +627,13 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 
 		@Override
 		public void onClick(MediaControl mediaControl) {
-//			mainClientHandler.invokeMethod("onClick", mediaControl.ordinal());
-			Log.e("TAG", "=====================> onClick");
+			mainClientHandler.invokeMethod("onClick", mediaControl.ordinal());
 			invokeMethod("onClick", mediaControl.ordinal());
 		}
 
 		@Override
 		public void onPause() {
-//			mainClientHandler.invokeMethod("onPause");
-			Log.e("TAG", "=====================> onPause");
-
+			mainClientHandler.invokeMethod("onPause");
 			invokeMethod("onPause");
 		}
 
@@ -673,9 +670,7 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 
 				executor.executeDartCallback(dartCallback);
 			} else {
-//				mainClientHandler.invokeMethod("onPlay");
-				Log.e("TAG", "=====================> onPlay");
-
+				mainClientHandler.invokeMethod("onPlay");
 				invokeMethod("onPlay");
 			}
 		}
@@ -692,7 +687,7 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 
 		@Override
 		public void onStop() {
-//			mainClientHandler.invokeMethod("onStop");
+			mainClientHandler.invokeMethod("onStop");
 			invokeMethod("onStop");
 		}
 
@@ -724,33 +719,31 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 
 		@Override
 		public void onSkipToNext() {
-			Log.e("TAG", "=====================> onSkipToNext");
-
-//            mainClientHandler.invokeMethod("onSkipToNext");
+            mainClientHandler.invokeMethod("onSkipToNext");
 			invokeMethod("onSkipToNext");
 		}
 
 		@Override
 		public void onSkipToPrevious() {
-//			mainClientHandler.invokeMethod("onSkipToPrevious");
+			mainClientHandler.invokeMethod("onSkipToPrevious");
 			invokeMethod("onSkipToPrevious");
 		}
 
 		@Override
 		public void onFastForward() {
-//			mainClientHandler.invokeMethod("onFastForward");
+			mainClientHandler.invokeMethod("onFastForward");
 			invokeMethod("onFastForward");
 		}
 
 		@Override
 		public void onRewind() {
-//			mainClientHandler.invokeMethod("onRewind");
+			mainClientHandler.invokeMethod("onRewind");
 			invokeMethod("onRewind");
 		}
 
 		@Override
 		public void onSeekTo(long pos) {
-//			mainClientHandler.invokeMethod("onSeekTo", pos);
+			mainClientHandler.invokeMethod("onSeekTo", pos);
 			invokeMethod("onSeekTo", pos);
 		}
 
@@ -771,7 +764,7 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 
 		@Override
 		public void onClose() {
-//			mainClientHandler.invokeMethod("onClose");
+			mainClientHandler.invokeMethod("onClose");
 			invokeMethod("onClose");
 		}
 
