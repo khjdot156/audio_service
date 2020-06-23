@@ -759,6 +759,7 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
 
 		@Override
 		public void onTaskRemoved() {
+			mainClientHandler.invokeMethod("onTaskRemoved");
 			invokeMethod("onTaskRemoved");
 		}
 
