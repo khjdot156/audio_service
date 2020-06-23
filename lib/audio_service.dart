@@ -611,9 +611,6 @@ class AudioService {
         case 'onRewind':
           _clientTask.onRewind();
           break;
-        case 'onTaskRemoved':
-          _clientTask.onTaskRemoved();
-          break;
         case 'onClose':
           _clientTask.onSwipeNotificationOnAndroid();
           break;
@@ -1508,7 +1505,9 @@ abstract class BackgroundAudioTask {
   /// Called on Android when the user swipes away your app's task in the task
   /// manager. If you use the `androidStopForegroundOnPause` option to
   /// [AudioService.start], then
-  void onTaskRemoved() {}
+  void onTaskRemoved() {
+    onStop();
+  }
 
   /// Called on Android when the user swipes away the notification. The default
   /// implementation (which you may override) calls [onStop].
@@ -1583,11 +1582,6 @@ abstract class ClientAudioTask {
   /// buffering to occur, consider broadcasting a buffering state via
   /// [AudioServiceBackground.setState] while the seek is in progress.
   void onSeekTo(Duration position) {}
-
-  /// Called on Android when the user swipes away your app's task in the task
-  /// manager. If you use the `androidStopForegroundOnPause` option to
-  /// [AudioService.start], then
-  void onTaskRemoved() {}
 
   /// Called on Android when the user swipes away the notification. The default
   /// implementation (which you may override) calls [onStop].
