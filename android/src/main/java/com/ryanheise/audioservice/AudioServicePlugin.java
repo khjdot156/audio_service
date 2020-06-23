@@ -765,7 +765,7 @@ public class AudioServicePlugin implements FlutterPlugin, ActivityAware {
         @Override
         public void onClose() {
             if (mainClientHandler != null) {
-                mainClientHandler.invokeMethod("onClose", pos);
+                mainClientHandler.invokeMethod("onClose");
             }
             invokeMethod("onClose");
         }
