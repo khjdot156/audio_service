@@ -1126,9 +1126,9 @@ class AudioServiceBackground {
     });
     Map startParams = await _backgroundChannel.invokeMethod('ready');
     Duration fastForwardInterval =
-    Duration(milliseconds: startParams['fastForwardInterval']);
+    Duration(milliseconds: startParams['fastForwardInterval'] ?? 0);
     Duration rewindInterval =
-    Duration(milliseconds: startParams['rewindInterval']);
+    Duration(milliseconds: startParams['rewindInterval'] ?? 0);
     Map<String, dynamic> params =
     startParams['params']?.cast<String, dynamic>();
     task._setParams(
