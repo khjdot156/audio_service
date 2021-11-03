@@ -10,7 +10,7 @@ environment:
 dependencies:
   rxdart: ^0.25.0
   flutter_isolate: ^1.0.0+14
-  flutter_cache_manager: ^1.4.0
+  flutter_cache_manager: ^2.1.2
   flutter:
     sdk: flutter
 
